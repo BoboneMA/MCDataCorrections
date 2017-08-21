@@ -56,7 +56,7 @@ def Correct_MC_with_Data(df, tableData,tableMC):
 
 
     if(VERB):
-        print "Correct_MC_with_Data_E_maxET...."#!!!This has to be modified
+        print "Correct_MC_with_Data...."#!!!This has to be modified
         print "Row:\n",df[[var_x,var_y]].T#!!!!
         print "MC efficiency table: \n",tableMC
         print "Data efficiency table: \n",tableData
