@@ -47,33 +47,10 @@ if __name__ == "__main__" :
 
     '''
     Author: Michele Atzeni
-    Date: June 1st, 2017
+    Date: 22 Aug 2017
 
     Description:
-    Takes the TightKst0 dataframes for MC (TM) and data (it should be BDT reweighted) and plots the histograms for the trigger efficiencies.
 
-    How to run it:
-    Choose the year of the desired MC/data correction of the trigger and execute!
-    > python L0TriggerDataMC.py [-y 11] [--test]
-
-
-
-  Important:                                                                                                                        
-    
-    Selection for MC (after TightKst0 preselection and Truth Matching):                                                               
-    B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                 
-                                                                                                                                      
-    B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                                                                
-                                                                                                                                      
-                                                                                                                                      
-    #Selection for Data (after TightKst0 preselection):                                                                               
-    #B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                
-    #                                                                                                                                 
-    #B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                            
     '''
         
     parser = argparse.ArgumentParser(description = 'Configuration of the parameters for the SplitAndMerge')
@@ -87,8 +64,6 @@ if __name__ == "__main__" :
     parser.add_argument("--test", action="store_true", help="Do a test plot")
     parser.add_argument("--version", action="store_true", help="q2version")
     parser.add_argument("--TM", action="store_true", help="TruthMatchedMC")
-
-    parser.add_argument("--plot", action="store_true", help="Do a test plot")
     parser.add_argument("--VERB", action="store_true", help="VERBOSE")
 
     
@@ -103,10 +78,9 @@ if __name__ == "__main__" :
     user= args.user
     TM = args.TM
     test = args.test
-    plot = args.plot
     VERB = args.VERB
 
-    TM = True
+    #TM = True
     #version = 'All'
     #low_val = '6'
     channelData = 'B02Kst0{}'.format(leptons)
@@ -125,6 +99,30 @@ if __name__ == "__main__" :
         from voc import  jobsDict, type_list, channel_list, yearsRI, yearsRII, mag_list
         from tools import GetJob,  listdirs, listfiles
 
+
+
+
+    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, test)
+    Eff_tables_Data, Eff_root_Data = CalibrationTables_L0(dfData,"Data", channelData, year, leptons, VERB)
+
+    del dfData
+
+
+
+    import pickle  
+    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, year, "Data", version, low_val)
+    with open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb') as f:
+        pickle.dump(Eff_tables_Data, f)
+    
+    #######
+    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val)
+    file_root_Data = TFile("EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
+    map(lambda x:x.Write(), Eff_root_Data)
+    #
+    file_root_Data.Close()
+
+    ###############
+    
     dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val, test)
     Eff_tables_MC, Eff_root_MC = CalibrationTables_L0(dfMC,"MC", channelMC, year, leptons, VERB)
     
@@ -139,7 +137,8 @@ if __name__ == "__main__" :
 
     import pickle  
     print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl".format(channelMC, year, "MC", Tag_sample)
-    pickle.dump(Eff_tables_MC, open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl'.format(channelMC, year, "MC", Tag_sample), 'wb'))
+    with open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl'.format(channelMC, year, "MC", Tag_sample), 'wb') as f:
+        pickle.dump(Eff_tables_MC, f)
     
     
         
@@ -149,24 +148,6 @@ if __name__ == "__main__" :
     map(lambda x:x.Write(), Eff_root_MC)
     file_root_MC.Close()
     
-
-    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, test)
-    Eff_tables_Data, Eff_root_Data = CalibrationTables_L0(dfData,"Data", channelData, year, leptons, VERB)
-
-    del dfData
-
-
-
-    import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_{}.pkl".format(channelData, year, "Data", version, low_val)
-    pickle.dump(Eff_tables_Data, open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb'))
-    
-    #######
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_{}.root".format(channelData, year, "Data", version, low_val)
-    file_root_Data = TFile("EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
-    map(lambda x:x.Write(), Eff_root_Data)
-    #
-    file_root_Data.Close()
 
 
     
