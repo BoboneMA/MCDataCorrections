@@ -29,16 +29,29 @@ import pdb
 
 def Correct_MC_with_Data(df, tableData,tableMC):
 
+    '''
+    Author: Michele Atzeni
+    Email: michele.atzeni@cern.ch
+    Date: 22 Aug 2017
 
+    Description:
+    This script returns the weigth (and its error) necessary to correct the MC event to better emulate the Data.
+    The weights are obtained per event thanks to the calibration tables {tableData,tableMC}.
+
+    Notice that this script only works if the two tables:
+    1. The MC table does not have null entries
+    2. The empty entries are common between the two tables.
+    '''
+    #Print a table randomly to check that the weights are obtained in the correct way
     rndm = np.random.uniform()
     if((rndm > 1./500.)&(rndm <= 2./500.)):
         VERB = True
     else:
         VERB =False
 
-
-    W = 0
-    W_err = 0
+    #initialize weights
+    W = -999
+    W_err = -999
 
 
     y_column= [i for i in tableData.columns if "Binsy" in i][0]
@@ -61,15 +74,15 @@ def Correct_MC_with_Data(df, tableData,tableMC):
         print "MC efficiency table: \n",tableMC
         print "Data efficiency table: \n",tableData
 
-                                                     #The bin number you obtain here can be associated immediately to the line of the table 
 
+    #Reduced table
     t_MC = tableMC.drop([x_column,y_column],axis=1).dropna()
     t_Data = tableData.drop([x_column,y_column],axis=1).dropna()
 
 
 
 
-    if((x<1)|(x>= len(xBins))|(y<1)|(y>= len(yBins))): #Give a 0 weight to the events that are not in the t_
+    if((x<1)|(x>= len(xBins))|(y<1)|(y>= len(yBins))): #Give a 0 weight to the events that are not in the intervals
         W = 0
         W_err = 0
         if(VERB):
@@ -112,12 +125,23 @@ def Correct_MC_with_Data(df, tableData,tableMC):
         
     return W, W_err
 
-def Reweighting(dftorw, ifile_spltd, year, TM, version, low_val):
+def Reweighting(dftorw, trig_cat, year, TM, version, low_val):
 
-    if(ifile_spltd[4] == 'L0E'):
+    '''
+    Author: Michele Atzeni
+    Email: michele.atzeni@cern.ch
+    Date: 22 Aug 2017
+
+    Description:
+    The script reweights the dataframe depending on its trigger category.
+
+
+    '''
+
+    if(trig_cat == 'L0E'):
         channelMC = 'B02Kst0Jpsi2{}'.format('ee')
         channelData = 'B02Kst0{}'.format('ee')
-    elif((ifile_spltd[4] == 'L0M')|(ifile_spltd[4] == 'L0H')|(ifile_spltd[4] == 'L0TIS')):
+    elif((trig_cat == 'L0M')|(trig_cat == 'L0H')|(trig_cat == 'L0TIS')):
         channelMC = 'B02Kst0Jpsi2{}'.format('mm')
         channelData = 'B02Kst0{}'.format('mm')
 
@@ -133,28 +157,28 @@ def Reweighting(dftorw, ifile_spltd, year, TM, version, low_val):
     print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl".format(channelMC, year, "MC", Tag_sample)
     Eff_MC_L0_tables = pickle.load(open("./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl".format(channelMC, year, "MC", Tag_sample)))
     
-    print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_{}.pkl".format(channelData, year, "Data", version, low_val)
-    Eff_Data_L0_tables = pickle.load(open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_{}.pkl'.format(channelData, year, "Data", version, low_val)))
+    print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, year, "Data", version, low_val)
+    Eff_Data_L0_tables = pickle.load(open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, year, "Data", version, low_val)))
 
     print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-{}.pkl".format(channelMC, "RunI", "MC", Tag_sample)
     Eff_MC_HLT_tables = pickle.load(open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-{}.pkl'.format(channelMC, "RunI", "MC", Tag_sample)))
 
-    print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_{}.pkl".format(channelData, "RunI", "Data", version, low_val)
-    Eff_Data_HLT_tables = pickle.load(open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_{}.pkl'.format(channelData, "RunI", "Data", version, low_val)))
+    print "Obtaining the Efficiency tables from EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, "RunI", "Data", version, low_val)
+    Eff_Data_HLT_tables = pickle.load(open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, "RunI", "Data", version, low_val)))
 
-    pdb.set_trace()
+
 
     dftorw['PT_min'] = dftorw[['K_PT','Pi_PT',"L1_PT", "L2_PT"]].min(axis=1)
 
     #weights
-    if (ifile_spltd[4] == 'L0M'):
+    if (trig_cat == 'L0M'):
         dftorw['PT_max'] = dftorw[["L1_PT", "L2_PT"]].max(axis=1)
         dftorw[['wL0M_maxPT','wL0M_maxPT_err']] = dftorw.apply(lambda x: Correct_MC_with_Data(x, Eff_Data_L0_tables['dfL0MeffData_maxPT'],Eff_MC_L0_tables['dfL0MeffMC_maxPT']), axis=1).apply(pd.Series)
 
         #HLT weights
         dftorw[['wHLT_L0M','wHLT_L0M_err']] = dftorw.apply(lambda x: Correct_MC_with_Data(x, Eff_Data_HLT_tables['dfData_HLT_L0Meff'], Eff_MC_HLT_tables['dfMC_HLT_L0Meff']), axis=1).apply(pd.Series)
     #
-    elif (ifile_spltd[4] == 'L0E'):
+    elif (trig_cat == 'L0E'):
         dftorw['L0Calo_ECAL_max_realET'] = dftorw[["L1_L0Calo_ECAL_realET", "L2_L0Calo_ECAL_realET"]].max(axis=1)
         dftorw['L0Calo_ECAL_region_max'] = dftorw[['L2_L0Calo_ECAL_realET','L1_L0Calo_ECAL_realET']].idxmax(axis=1)
         dftorw.ix[dftorw.L0Calo_ECAL_region_max.isin(['L1_L0Calo_ECAL_realET']), 'L0Calo_ECAL_region_max'] = dftorw.ix[dftorw.L0Calo_ECAL_region_max.isin(['L1_L0Calo_ECAL_realET']), 'L1_L0Calo_ECAL_region']
@@ -167,7 +191,7 @@ def Reweighting(dftorw, ifile_spltd, year, TM, version, low_val):
         dftorw[['wHLT_L0E','wHLT_L0E_err']] = dftorw.apply(lambda x: Correct_MC_with_Data(x, Eff_Data_HLT_tables['dfData_HLT_L0Eeff'], Eff_MC_HLT_tables['dfMC_HLT_L0Eeff']), axis=1).apply(pd.Series)
 
     #
-    elif (ifile_spltd[4] == 'L0H'):
+    elif (trig_cat == 'L0H'):
         dftorw['Kstar_L0Calo_HCAL_region']= dftorw['K_L0Calo_HCAL_region']+dftorw['Pi_L0Calo_HCAL_region']        
 
         #notL0M -> L0H!                                                                                                                    
@@ -180,7 +204,7 @@ def Reweighting(dftorw, ifile_spltd, year, TM, version, low_val):
 
         dftorw[['wHLT_L0H','w_HLT_L0H_err']] = dftorw.apply(lambda x: Correct_MC_with_Data(x, Eff_Data_HLT_tables['dfData_HLT_L0Heff'],Eff_MC_HLT_tables['dfMC_HLT_L0Heff']),axis=1).apply(pd.Series)
     #
-    elif (ifile_spltd[4] == 'L0TIS'):
+    elif (trig_cat == 'L0TIS'):
 
 
 
@@ -197,4 +221,5 @@ def Reweighting(dftorw, ifile_spltd, year, TM, version, low_val):
 
 
     return dftorw
+
 
