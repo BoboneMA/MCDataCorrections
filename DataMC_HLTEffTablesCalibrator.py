@@ -47,33 +47,17 @@ if __name__ == "__main__" :
 
     '''
     Author: Michele Atzeni
-    Date: June 1st, 2017
+    Date: 22 Aug 2017
 
     Description:
-    Takes the TightKst0 dataframes for MC (TM) and data (it should be BDT reweighted) and plots the histograms for the trigger efficiencies.
 
-    How to run it:
-    Choose the year of the desired MC/data correction of the trigger and execute!
-    > python L0TriggerDataMC.py [-y 11] [--test]
+    python DataMC_HLTEffTablesCalibrator.py -y RunI -l [ee,mm] -v [All, q2, q2_PVandBDTF] -low [6,7] -u [M,F] --TM --VERB
 
-
-
-  Important:                                                                                                                        
-    
-    Selection for MC (after TightKst0 preselection and Truth Matching):                                                               
-    B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                 
-                                                                                                                                      
-    B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                                                                
-                                                                                                                                      
-                                                                                                                                      
-    #Selection for Data (after TightKst0 preselection):                                                                               
-    #B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                
-    #                                                                                                                                 
-    #B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                            
+    Achtung:
+    If the --test option is used the HLT tables might have a large number of zero entries.
+    This can cause two different problems:
+    1. The code responsable for the adaptive binning is unstable for a number of events per bin < 2. It may crash.
+    2. The Correct_MC_with_Data script only works if the  number of null entries in the table is as small as possible.
     '''
         
     parser = argparse.ArgumentParser(description = 'Configuration of the parameters for the SplitAndMerge')
@@ -85,10 +69,7 @@ if __name__ == "__main__" :
     parser.add_argument("-u", "--user" , dest="user"  , required=False, help="", choices= ['M','F'], default = 'M')
 
     parser.add_argument("--test", action="store_true", help="Do a test plot")
-    parser.add_argument("--version", action="store_true", help="q2version")
     parser.add_argument("--TM", action="store_true", help="TruthMatchedMC")
-
-    parser.add_argument("--plot", action="store_true", help="Do a test plot")
     parser.add_argument("--VERB", action="store_true", help="VERBOSE")
 
     
@@ -103,10 +84,9 @@ if __name__ == "__main__" :
     user= args.user
     TM = args.TM
     test = args.test
-    plot = args.plot
     VERB = args.VERB
 
-    TM = True
+    #TM = True
     #version = 'All'
     #low_val = '6'
     channelData = 'B02Kst0{}'.format(leptons)
@@ -158,35 +138,14 @@ if __name__ == "__main__" :
 
 
     import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_{}.pkl".format(channelData, year, "Data", version, low_val)
-    pickle.dump(Eff_tables_Data, open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb'))
+    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, year, "Data", version, low_val)
+    pickle.dump(Eff_tables_Data, open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb'))
     
     #######
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_{}.root".format(channelData, year, "Data", version, low_val)
-    file_root_Data = TFile("EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
+    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val)
+    file_root_Data = TFile("EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
     map(lambda x:x.Write(), Eff_root_Data)
     #
     file_root_Data.Close()
 
 
-    
-    '''
-    import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}.pkl".format(channel, year, inputType)
-    os.system('mkdir -p EffTable')
-    pickle.dump(Eff_tables, open('EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}.pkl'.format(channel, year, inputType), 'wb'))
-    
-    
-    
-    os.system('mkdir -p Plots')
-    os.system('mkdir -p Plots/TriggerCalibration')
-    
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_HLT_{}_{}_{}.root".format(channel, year, inputType)
-    file_root = TFile("EffTable/EffHisto_Calib_HLT_{}_{}_{}.root".format(channel, year, inputType),"RECREATE")
-    
-    eff_HLT_L0E.Write()
-    eff_HLT_L0H.Write()
-    eff_HLT_L0TIS.Write()
-    
-    file_root.Close()
-    '''
