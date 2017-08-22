@@ -37,47 +37,54 @@ import pdb
 from Correct_MC_with_Data import Correct_MC_with_Data_E_maxET, Correct_MC_with_Data_M_maxPT, Correct_MC_with_Data_KPi, Correct_MC_with_Data_TIS, Correct_MC_with_Data_E_mixedmaxET, Correct_MC_with_Data_M_mixedmaxPT, Correct_MC_with_Data_HLT
 
 from UtilsTriggerCalib import HLTTriggerSelection_E,HLTTriggerSelection_M
-#TRIGGER CUTS
+
 
 
 def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
 
+    '''
+    Author: Michele Atzeni
+    Email: michele.atzeni@cern.ch
+    Date: 22 Aug 2017
+
+
+    Description:
+    Given a dataframe and its main characteristics it produces the TISTOS efficiency tables and histograms for L0, thanks to the modules TagAndProbe* .
+
+
+    Achtung:
+    It is important to notice that Adaflag is True for Data and False for MC. This is beacuse the Data sample is usually smaller than the simulated one and the bnning should be adapted to the smallest possible sample. 
+    The binning obtained for the data is then saved in Binning*.dat and used after for the corresponding simulated sample. 
+    For this reason we should always calibrate first the data and then the MC.
+    '''
     #This options allows you to select the TIS sampleon the basis of a hardcoded list you find in TagAndProb_kfold_pro.py
-    
-    selTag = "B_L0Global_TIS"
+
     Eff_tables = {}
-    #### Part 1: Apply some selections to dfData and dfMC necessary for our studies
-    #
-    #### For muons: + B_PVandJpsiDTF_B_M in [5219, 5339.] MeV/c^2
-    #               + Jpsi_M in [2996.9, 3196.9] MeV/c^2
-    #               + Hlt1 && Hlt2
-    #
-    #For electrons:  + B_PVandJpsiDTF_B_M in [5219., 5339.] MeV/c^2                                                                                       
-    #               + Jpsi_M^2 in [6000000., 11000000.] MeV^2/c^4 
-    #               + Hlt1 && Hlt2                                                                                                                            
-    #                          
-
-
 
     if(inputType == "Data"):
         Adaflag = True
     else:
         Adaflag = False
 
-
+    print "The dataframe used for L0 efficiency calcultaion has shape: ",df.shape
 
     if(leptons == 'ee'):
 
 
-        print "df.shape TightKst0: ",df.shape
+
         dfL0 = HLTTriggerSelection_E(df, year)
+        print "Dataframe after the HLT selection has shape: ",dfL0.shape
 
-        ##Part 2: Efficiency plots and tables for Data and MC
-
+        selTag = "B_L0Global_TIS"
         #TIS TOS efficiency for: L0E
-
         modelL0E = "maxET"
-        effIn_e_maxET, effMid_e_maxET, effOut_e_maxET, dfL0Eff_maxET = TagAndProbe_L0E(dfL0, selTag, modelL0E, '{}-{}'.format(inputType,year+modelL0E), Adaflag, None, VERB)
+        effIn_e_maxET, effMid_e_maxET, effOut_e_maxET, dfL0Eff_maxET = TagAndProbe_L0E(dfL0,                                   #dataframe used 
+                                                                                       selTag,                                 #selection used for the Tag sample
+                                                                                       modelL0E,                               #model used for the efficiency calculation, i.e. the variable used to bin the efficiency
+                                                                                       '{}-{}'.format(inputType,year+modelL0E),#Tag used to distinguish the efficiency histograms
+                                                                                       Adaflag,                                #Adaptive binning option
+                                                                                       None,                                   #Name of the weights column to use 
+                                                                                       VERB)                                   #VERBOSE
         '''
         #Histos with weights
         #effInData_e_maxETw, effMidData_e_maxETw, effOutData_e_maxETw, dfL0EffData_maxETw = TagAndProbe_L0E(dfDataL0, selTag, modelL0E, 'Data-SW-{}'.format(year+modelL0E), True, "Sig_sw", VERB)
@@ -94,29 +101,26 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
         '''
 
         #TIS TOS efficiency for: L0H
-
         modelL0H = "notL0E"
         effIn_KPi_notL0E, effMid_KPi_notL0E, effOut_KPi_notL0E, dfL0Heff_notL0E = TagAndProbe_L0H(dfL0, selTag, modelL0H, '{}-{}'.format(inputType,year+modelL0H), Adaflag, None, VERB)
         '''
         #effInMC_KPi_notL0Ew, effMidMC_KPi_notL0Ew, effOutMC_KPi_notL0Ew, dfL0HeffMC_notL0Ew = TagAndProbe_L0H(df, selTag, modelL0H, 'MC-BDT-{}'.format(year+modelL0H), False, 'weights_gb2', VERB)
         '''
 
-        modelL0H = "alsoL0L" 
+        modelL0H = "alsoL0E" 
         effIn_KPi_alsoL0E, effMid_KPi_alsoL0E, effOut_KPi_alsoL0E, dfL0Heff_alsoL0E = TagAndProbe_L0H(dfL0, selTag, modelL0H, '{}-{}'.format(inputType, year+modelL0H), Adaflag, None, VERB) 
         '''
         #effInMC_KPi_alsoL0Ew, effMidMC_KPi_alsoL0Ew, effOutMC_KPi_alsoL0Ew, dfL0HeffMC_alsoL0Ew = TagAndProbe_L0H(df, selTag, modelL0H, 'MC-BDT-{}'.format(year+modelL0H), False, "weights_gb2", VERB) 
         '''
 
         #TIS TOS efficiency for: L0TIS
-        
         modelL0TIS = "notL0EH"
-        selTagTIS = "B_L0Global_TOS"
-        eff_tis0_notL0EH, eff_tis1_notL0EH, eff_tis2_notL0EH, eff_tis3_notL0EH, dfL0TISeff_notL0EH = TagAndProbe_L0TIS(dfL0, selTagTIS, modelL0TIS, '{}-{}'.format(inputType, year+modelL0TIS), Adaflag, False, VERB) 
+        selTag = "B_L0Global_TOS"
+        eff_tis0_notL0EH, eff_tis1_notL0EH, eff_tis2_notL0EH, eff_tis3_notL0EH, dfL0TISeff_notL0EH = TagAndProbe_L0TIS(dfL0, selTag, modelL0TIS, '{}-{}'.format(inputType, year+modelL0TIS), Adaflag, False, VERB) 
 
-        #
-
-        modelL0TIS = "alsoL0LH"
-        eff_tis0_alsoL0EH, eff_tis1_alsoL0EH, eff_tis2_alsoL0EH, eff_tis3_alsoL0EH, dfL0TISeff_alsoL0EH = TagAndProbe_L0TIS(dfL0, selTagTIS, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
+        ######
+        modelL0TIS = "alsoL0EH"
+        eff_tis0_alsoL0EH, eff_tis1_alsoL0EH, eff_tis2_alsoL0EH, eff_tis3_alsoL0EH, dfL0TISeff_alsoL0EH = TagAndProbe_L0TIS(dfL0, selTag, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
         
         Eff_tables.update({"dfL0Eff{}_maxET".format(inputType):dfL0Eff_maxET,
                            "dfL0Eff{}_mixedmaxET".format(inputType):dfL0Eff_mixedmaxET,
@@ -152,15 +156,11 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
  
     elif(leptons == 'mm'):
 
-
+        selTag = "B_L0Global_TIS"
         #TIS TOS efficiency for: L0M
-
-        # Reading the MC sample
         df.reset_index(inplace=True, drop=True)
-        print "df.shape TightKst0: ",df.shape
         dfL0 = HLTTriggerSelection_M(df, year)
-
-
+        print "Dataframe after the HLT selection has shape: ",dfL0.shape
 
         modelL0M = "maxPT"
         #This options allows you to select two different approaches for the calculation of the TISTOS efficiency for L0L and L0H. The list is hardcoded in TagAndProb_kfold_pro.py
@@ -179,7 +179,6 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
         '''
 
         modelL0M = "mixedmaxPT"
-
         eff_m_mixedmaxPT, dfL0Meff_mixedmaxPT = TagAndProbe_L0M(dfL0, selTag, modelL0M, '{}-{}'.format(inputType,year+modelL0M), Adaflag, False, VERB) 
         '''
         #Histos with weights
@@ -197,7 +196,7 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
         #effInMC_KPi_notL0M, effMidMC_KPi_notL0M, effOutMC_KPi_notL0M, dfL0HeffMC_notL0M = TagAndProbe_L0H(dfL0, selTag, modelL0H, 'MC-BDT-{}'.format(year+modelL0H), False, "weights_gb1", VERB) 
         '''
 
-        modelL0H = "alsoL0L" 
+        modelL0H = "alsoL0M" 
         effIn_KPi_alsoL0M, effMid_KPi_alsoL0M, effOut_KPi_alsoL0M, dfL0Heff_alsoL0M = TagAndProbe_L0H(dfL0, selTag, modelL0H, '{}-{}'.format(inputType,year+modelL0H), Adaflag, None, VERB) 
         '''
         #effInMC_KPi_alsoL0Mw, effMidMC_KPi_alsoL0Mw, effOutMC_KPi_alsoL0Mw, dfL0HeffMC_alsoL0Mw = TagAndProbe_L0H(dfL0, selTag, modelL0H, 'MC-BDT-{}'.format(year+modelL0H), False, "weights_gb1", VERB) 
@@ -205,12 +204,12 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
 
 
         #TIS TOS efficiency for: L0TIS
-        selTagTIS = "B_L0Global_TOS"
+        selTag = "B_L0Global_TOS"
         modelL0TIS = "notL0MH"
-        eff_tis0_notL0MH, eff_tis1_notL0MH, eff_tis2_notL0MH, eff_tis3_notL0MH, dfL0TISeff_notL0MH = TagAndProbe_L0TIS(dfL0, selTagTIS, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
+        eff_tis0_notL0MH, eff_tis1_notL0MH, eff_tis2_notL0MH, eff_tis3_notL0MH, dfL0TISeff_notL0MH = TagAndProbe_L0TIS(dfL0, selTag, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
 
-        modelL0TIS = "alsoL0LH"
-        eff_tis0_alsoL0MH, eff_tis1_alsoL0MH, eff_tis2_alsoL0MH, eff_tis3_alsoL0MH, dfL0TISeff_alsoL0MH = TagAndProbe_L0TIS(dfL0, selTagTIS, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
+        modelL0TIS = "alsoL0MH"
+        eff_tis0_alsoL0MH, eff_tis1_alsoL0MH, eff_tis2_alsoL0MH, eff_tis3_alsoL0MH, dfL0TISeff_alsoL0MH = TagAndProbe_L0TIS(dfL0, selTag, modelL0TIS, '{}-{}'.format(inputType,year+modelL0TIS), Adaflag, False, VERB) 
         #
 
         Eff_tables.update({"dfL0TISeff{}_alsoL0MH".format(inputType):dfL0TISeff_alsoL0MH,
@@ -252,21 +251,27 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, VERB):
 
 def CalibrationTables_HLT(df, inputType, channel,  year, leptons, VERB):
 
-    #This options allows you to select the TIS sampleon the basis of a hardcoded list you find in TagAndProb_kfold_pro.py
-    
-    selTag = "B_L0Global_TIS"
-    Eff_tables = {}
-    #### Part 1: Apply some selections to dfData and dfMC necessary for our studies
-    #
-    #### For muons: + B_PVandJpsiDTF_B_M in [5219, 5339.] MeV/c^2
-    #               + Jpsi_M in [2996.9, 3196.9] MeV/c^2
-    #               + Hlt1 && Hlt2
-    #
-    #For electrons:  + B_PVandJpsiDTF_B_M in [5219., 5339.] MeV/c^2                                                                                       
-    #               + Jpsi_M^2 in [6000000., 11000000.] MeV^2/c^4 
-    #               + Hlt1 && Hlt2                                                                                                                            
-    #                          
+    '''
+    Author: Michele Atzeni
+    Email: michele.atzeni@cern.ch
+    Date: 22 Aug 2017
 
+
+    Description:
+    Given a dataframe and its main characteristics it produces the TISTOS efficiency tables and histograms for HLT, thanks to the modules TagAndProbe* .
+
+
+    Achtung:
+    It is important to notice that Adaflag is True for Data and False for MC. This is beacuse the Data sample is usually smaller than the simulated one and the bnning should be adapted to the smallest possible sample. 
+    The binning obtained for the data is then saved in Binning*.dat and used after for the corresponding simulated sample. 
+    For this reason we should always calibrate first the data and then the MC.
+    '''
+    
+
+
+    #This options allows you to select the TIS sampleon the basis of a hardcoded list you find in TagAndProb_kfold_pro.py
+    Eff_tables = {}
+    print "The dataframe used for HLT efficiency calcultaion has shape: ",df.shape
 
  
     if (inputType == 'Data'):
@@ -275,30 +280,18 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, VERB):
         Adaflag = False
 
 
-
-
-
     if(leptons == 'mm'):
 
-        #df = df[(df.B_PVandJpsiDTF_B_M>5219.) & (df.B_PVandJpsiDTF_B_M <5339.) & (data.Jpsi_M > 2996.9) & (data.Jpsi_M < 3196.9 ) ]
-        print "df.shape TightKst0: ",df.shape
-        Eff_tables = {}
-
-
         #HLT efficiency
-        '''
-        import pickle  
-        df = pickle.load(open('df_{}_{}.pkl'.format(channelMC, year), 'rb'))
-        print "The dataframe reweighted has the following shape: ", df.shape
-        '''
         df['PT_min'] = df[['K_PT','Pi_PT',"L1_PT", "L2_PT"]].min(axis=1)
 
         modelHLT = "M"
 
         dfL0M =df[(df.L1_L0MuonDecision_TOS == 1) | (df.L2_L0MuonDecision_TOS == 1)] 
         dfL0Hin = df[(df.Kstar_L0HadronDecision_TOS == 1) ] 
-        dfL0TISin =df[(df.B_L0Global_TIS == 1) ] 
-
+        dfL0TISin =df[(df.B_L0Global_TIS == 1)] 
+        print "The three inclusive categories have the following shapes:\n L0M: {}\n L0H: {}\n L0I: {}\n".format(dfL0M.shape, dfL0Hin.shape, dfL0TISin.shape )
+        
         eff_HLT_L0M, df_HLT_L0Meff = TagAndProbe_HLT(dfL0M, year, modelHLT, '{}-HLT-{}'.format(inputType,year+modelHLT+"_L0M"), Adaflag, None, VERB)
         #If we want L0 reweighted
         '''
@@ -322,22 +315,18 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, VERB):
                            "df{}_HLT_L0Heff".format(inputType):df_HLT_L0Heff,
                            "df{}_HLT_L0TISeff".format(inputType):df_HLT_L0TISeff})
 
-        Eff_root = [eff_HLT_L0E,
+        Eff_root = [eff_HLT_L0M,
                     eff_HLT_L0H,
                     eff_HLT_L0TIS]
 
+        return Eff_tables, Eff_root
+
     elif(leptons == 'ee'):
+
         # Reading the MC sample
 
-        #df = df[(df.B_PVandJpsiDTF_B_M>5219.) & (df.B_PVandJpsiDTF_B_M <5339.) & (df.Jpsi_M*df.Jpsi_M  > 6000000.) & (df.Jpsi_M*df.Jpsi_M < 11000000.) ]
-        print "df.shape TightKst0: ",df.shape
 
         #HLT efficiency
-        '''
-        import pickle  
-        df = pickle.load(open('df_{}_{}.pkl'.format(channelMC, year), 'rb'))
-        print "The dataframe reweighted has the following shape: ", df.shape
-        '''
         df['PT_min'] = df[['K_PT','Pi_PT',"L1_PT", "L2_PT"]].min(axis=1)
 
         modelHLT = "E"
@@ -345,7 +334,7 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, VERB):
         dfL0E =df[(df.L1_L0ElectronDecision_TOS == 1) | (df.L2_L0ElectronDecision_TOS == 1)] 
         dfL0Hin = df[df.Kstar_L0HadronDecision_TOS == 1] 
         dfL0TISin =df[df.B_L0Global_TIS == 1] 
-        
+        print "The three inclusive categories have the following shapes:\n L0M: {}\n L0H: {}\n L0I: {}\n".format(dfL0M.shape, dfL0Hin.shape, dfL0TISin.shape )
 
         eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-HLT-{}'.format(inputType,year+modelHLT+"_L0E"), Adaflag, None, VERB)
         #If we want L0 reweighted
