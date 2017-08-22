@@ -36,7 +36,18 @@ from Correct_MC_with_Data import Correct_MC_with_Data_E_maxET, Correct_MC_with_D
 def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, year, TM, version, low_val, test):
 
     ######################################
+    '''
+    Author: Michele Atzeni
+    Email: michele.atzeni@cern.ch
+    Date: 22 Aug 2017
 
+    Description:
+    The script is composed of three parts:
+    1. Thanks to the module GetJob we obtain the job numbers corresponding to the sample of interest (i.e. with channel, year, inputType and mag required);
+    2. From all the .h5 files with this job numbers we extract the dataframes dfL0HLT/dfTighKst0_noTrig and we apply a the selection written in CalibSelection_*.py;
+    3. Merge all dataframes obtained and return.
+        
+    '''
 
 
     if (test):
@@ -95,7 +106,7 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
                             if ((filecount > max_files) & (max_files > 0)):
                                 break
                         except:
-                            print "ACHTUNG!No dfTightKst0_noTrig"
+                            print "ACHTUNG!No such a dataframe was found!"
                             store.close()
                     else:
                         print '========================================================================================'
@@ -103,6 +114,7 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
                         print '========================================================================================'
                 
                 except:
+                    print "***************************"
                     print "ACHTUNG!PROBLEM!Skipping..."
                     print "***************************"
 
@@ -131,23 +143,26 @@ def PreselB02Kst0Jpsi2eeDF(df,version, low_val) :
     return df
 
 def CalibSelection_M(df, TM):
-
+    '''
+    Selection used for the calibration samples of B02Kst0Jpsi2mm & B02Kst0mm
+    '''
     df = df[(df.B_PVandJpsiDTF_B_M> 5219.) & (df.B_PVandJpsiDTF_B_M <5339.) & (df.Jpsi_M > 2996.9) & (df.Jpsi_M < 3196.9 ) ]
 
-    if(TM):
+    if(TM):#Only for MC!!!
         
         df = df[(df.B_BKGCAT == 0) | (df.B_BKGCAT == 10) | (df.B_BKGCAT == 50) | (df.B_BKGCAT == 60) ]
 
     return df
 
 def CalibSelection_E(df, TM, version, low_val):
-
-
+    '''
+    Selection used for the calibration samples of B02Kst0Jpsi2ee & B02Kst0ee
+    '''
     df = df[(df.B_PVandJpsiDTF_B_M> 5219.) & (df.B_PVandJpsiDTF_B_M <5339.)]
     df = PreselB02Kst0Jpsi2eeDF(df,version, low_val)
 
 
-    if(TM):
+    if(TM):#Only for MC!!
 
         df = df[(df.B_BKGCAT == 0) | (df.B_BKGCAT == 10) | (df.B_BKGCAT == 50) | (df.B_BKGCAT == 60) ]
 
@@ -156,8 +171,9 @@ def CalibSelection_E(df, TM, version, low_val):
 #############################################################
     
 def HLTTriggerSelection_E(df, year):
-
-
+    '''
+    Selection used for the L0 trigger TISTOS efficiency calculation in the electron channels
+    '''
     if ((year == '11') or (year == '12')) :
         cutHLT1 = (df.B_Hlt1TrackAllL0Decision_TOS==1)
     elif ((year == '15') or (year == '16')) :
@@ -172,6 +188,9 @@ def HLTTriggerSelection_E(df, year):
     return df[cutHLT1 & cutHLT2]
 
 def HLTTriggerSelection_M(df, year):
+    '''
+    Selection used for the L0 trigger TISTOS efficiency calculation in the muon channels
+    '''
     
     cutHLT1 = ((df.B_Hlt1TrackAllL0Decision_TOS==1) | (df.B_Hlt1TrackMuonDecision_TOS==1))
     cutHLT2 = ((df.B_Hlt2Topo2BodyBBDTDecision_TOS==1) | (df.B_Hlt2Topo3BodyBBDTDecision_TOS==1) | (df.B_Hlt2Topo4BodyBBDTDecision_TOS==1) | (df.B_Hlt2TopoMu2BodyBBDTDecision_TOS==1) | (df.B_Hlt2TopoMu3BodyBBDTDecision_TOS==1) | (df.B_Hlt2TopoMu4BodyBBDTDecision_TOS==1) | (df.B_Hlt2DiMuonDetachedDecision_TOS==1))
@@ -199,7 +218,9 @@ def listfiles(folder):
 
 
 def GetJob(jobDict, channel, year, polarity, inputType):
-
+    '''
+    Given the channel, year, polarity and inputType returns all the jobs that match the pattern in jobDict
+    '''
     job = []
     count = 0
     for ijob in jobDict.keys():
