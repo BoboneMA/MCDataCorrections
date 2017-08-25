@@ -100,54 +100,53 @@ if __name__ == "__main__" :
         from tools import GetJob,  listdirs, listfiles
 
 
+    if(TM):
+        Tag_name = 'q2{}_lw{}_TM'.format(version, low_val)
+    else:
+        Tag_name = 'q2{}_lw{}'.format(version, low_val)
 
 
     dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, test)
-    Eff_tables_Data, Eff_root_Data = CalibrationTables_L0(dfData,"Data", channelData, year, leptons, VERB)
+    Eff_tables_Data, Eff_root_Data = CalibrationTables_L0(dfData,"Data", channelData, year, leptons,  Tag_name, VERB)
 
     del dfData
-
-
-
-    import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, year, "Data", version, low_val)
-    with open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb') as f:
-        pickle.dump(Eff_tables_Data, f)
-    
-    #######
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val)
-    file_root_Data = TFile("EffTable/EffHisto_Calib_L0_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
-    map(lambda x:x.Write(), Eff_root_Data)
-    #
-    file_root_Data.Close()
-
     ###############
     
-    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val, test)
-    Eff_tables_MC, Eff_root_MC = CalibrationTables_L0(dfMC,"MC", channelMC, year, leptons, VERB)
+    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val,  test)
+    Eff_tables_MC, Eff_root_MC = CalibrationTables_L0(dfMC,"MC", channelMC, year, leptons, Tag_name,VERB)
     
     del dfMC
     #######
     os.system('mkdir -p EffTable')
-
-    if(TM):
-        Tag_sample = 'q2{}_lw{}_TM'.format(version, low_val)
-    else:
-        Tag_sample = 'q2{}_lw{}'.format(version, low_val)
-
+    os.system('mkdir -p EffTable/{}'.format(Tag_name))
     import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl".format(channelMC, year, "MC", Tag_sample)
-    with open('./EffTable/EfficiencyTables_Calib_L0_{}_{}_{}-{}.pkl'.format(channelMC, year, "MC", Tag_sample), 'wb') as f:
+    print "Writing the efficiency tables to EffTable/{}/EfficiencyTables_Calib_L0-{}_{}_{}_{}-{}.pkl".format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name)
+    with open('./EffTable/{}/EfficiencyTables_Calib_L0-{}_{}_{}_{}-{}.pkl'.format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name), 'wb') as f:
         pickle.dump(Eff_tables_MC, f)
     
     
         
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_L0_{}_{}_{}-{}.root".format(channelMC, year, "MC", Tag_sample)
-    file_root_MC = TFile("EffTable/EffHisto_Calib_L0_{}_{}_{}-{}.root".format(channelMC, year, "MC", Tag_sample),"RECREATE")
+    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_L0-{}_{}_{}_{}-{}.pkl".format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name)
+    file_root_MC = TFile("EffTable/{}/EffHisto_Calib_L0{}_{}_{}_{}-{}.pkl".format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name),"RECREATE")
 
     map(lambda x:x.Write(), Eff_root_MC)
     file_root_MC.Close()
     
 
+
+
+
+
+    import pickle  
+    print "Writing the efficiency tables to EffTable/{}/EfficiencyTables_Calib_L0-{}_{}_{}_{}-{}.pkl".format(Tag_name, "Data", channelData, year, "mBoth", Tag_name)
+    with open('./EffTable/{}/EfficiencyTables_Calib_L0-{}_{}_{}_{}-{}.pkl'.format(Tag_name, "Data", channelData, year, "mBoth", Tag_name), 'wb') as f:
+        pickle.dump(Eff_tables_Data, f)
+    
+    #######
+    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_L0-{}_{}_{}_{}-{}.pkl".format(Tag_name, "Data", channelData, year, "mBoth", Tag_name)
+    file_root_Data = TFile("EffTable/{}/EffHisto_Calib_L0-{}_{}_{}_{}-{}.pkl".format(Tag_name, "Data", channelData, year, "mBoth", Tag_name),"RECREATE")
+    map(lambda x:x.Write(), Eff_root_Data)
+    #
+    file_root_Data.Close()
 
     

@@ -93,6 +93,12 @@ if __name__ == "__main__" :
     channelMC = 'B02Kst0Jpsi2{}'.format(leptons)
     
 
+    if(TM):
+        Tag_name = 'q2{}_lw{}_TM'.format(version, low_val)
+    else:
+        Tag_name = 'q2{}_lw{}'.format(version, low_val)
+
+
     if(user == "M"):
         directoryMC = '/home/hep/matzeni/gangadir/Analysis/DFs/MC/{}/DFs/WithHOP/ParallelSplitOutput/L0HLT/'.format(channelMC)
         directoryData = '/home/hep/matzeni/gangadir/Analysis/DFs/Data/{}/DFs/WithHOP/ParallelSplitOutput/L0HLT/'.format(channelData)
@@ -105,18 +111,21 @@ if __name__ == "__main__" :
         from voc import  jobsDict, type_list, channel_list, yearsRI, yearsRII, mag_list
         from tools import GetJob, GetList_for_ReducedChain, listdirs, listfiles
 
-    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val, test)
-    Eff_tables_MC, Eff_root_MC = CalibrationTables_HLT(dfMC,"MC", channelMC, year, leptons, VERB)
+    #######
+
+    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val,  test)
+    Eff_tables_Data, Eff_root_Data = CalibrationTables_HLT(dfData,"Data", channelData, year, leptons,Tag_name, VERB)
+
+    del dfData
+
+    #######
+
+    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val,  test)
+    Eff_tables_MC, Eff_root_MC = CalibrationTables_HLT(dfMC,"MC", channelMC, year, leptons, Tag_name, VERB)
     
     del dfMC
     #######
     os.system('mkdir -p EffTable')
-
-    if(TM):
-        Tag_name = 'q2{}_lw{}_TM'.format(version, low_val)
-    else:
-        Tag_name = 'q2{}_lw{}'.format(version, low_val)
-
     os.system('mkdir -p EffTable/{}'.format(Tag_name))
 
     #Model for writing down quantities from now on: EfficiencyTables_Calib_HLT-MC_channelMC_year_mag-Tag_with_lower_case
@@ -128,16 +137,11 @@ if __name__ == "__main__" :
     
         
     print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name,"MC", channelMC, year,"mBoth",  Tag_name)
-    file_root_MC = TFile("EffTable{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"MC", channelMC, year, "mBoth",  Tag_name),"RECREATE")
+    file_root_MC = TFile("EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"MC", channelMC, year, "mBoth",  Tag_name),"RECREATE")
 
     map(lambda x:x.Write(), Eff_root_MC)
     file_root_MC.Close()
     
-
-    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, test)
-    Eff_tables_Data, Eff_root_Data = CalibrationTables_HLT(dfData,"Data", channelData, year, leptons, VERB)
-
-    del dfData
 
 
 
