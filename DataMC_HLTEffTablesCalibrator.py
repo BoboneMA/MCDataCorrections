@@ -113,18 +113,22 @@ if __name__ == "__main__" :
     os.system('mkdir -p EffTable')
 
     if(TM):
-        Tag_sample = 'q2{}_lw{}_TM'.format(version, low_val)
+        Tag_name = 'q2{}_lw{}_TM'.format(version, low_val)
     else:
-        Tag_sample = 'q2{}_lw{}'.format(version, low_val)
+        Tag_name = 'q2{}_lw{}'.format(version, low_val)
+
+    os.system('mkdir -p EffTable/{}'.format(Tag_name))
+
+    #Model for writing down quantities from now on: EfficiencyTables_Calib_HLT-MC_channelMC_year_mag-Tag_with_lower_case
 
     import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-{}.pkl".format(channelMC, year, "MC", Tag_sample)
-    pickle.dump(Eff_tables_MC, open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-{}.pkl'.format(channelMC, year, "MC", Tag_sample), 'wb'))
+    print "Writing the efficiency tables to EffTable/{}/EfficiencyTables_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name)
+    pickle.dump(Eff_tables_MC, open("./EffTable/{}/EfficiencyTables_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name, "MC", channelMC, year,"mBoth",  Tag_name), 'wb'))
     
     
         
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_HLT_{}_{}_{}-{}.root".format(channelMC, year, "MC", Tag_sample)
-    file_root_MC = TFile("EffTable/EffHisto_Calib_HLT_{}_{}_{}-{}.root".format(channelMC, year, "MC", Tag_sample),"RECREATE")
+    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name,"MC", channelMC, year,"mBoth",  Tag_name)
+    file_root_MC = TFile("EffTable{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"MC", channelMC, year, "mBoth",  Tag_name),"RECREATE")
 
     map(lambda x:x.Write(), Eff_root_MC)
     file_root_MC.Close()
@@ -138,12 +142,12 @@ if __name__ == "__main__" :
 
 
     import pickle  
-    print "Writing the efficiency tables to EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl".format(channelData, year, "Data", version, low_val)
-    pickle.dump(Eff_tables_Data, open('./EffTable/EfficiencyTables_Calib_HLT_{}_{}_{}-q2{}_lw{}.pkl'.format(channelData, year, "Data", version, low_val), 'wb'))
+    print "Writing the efficiency tables to EffTable/{}/EfficiencyTables_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name, "Data", channelData, year, "mBoth", Tag_name)
+    pickle.dump(Eff_tables_Data, open("./EffTable/{}/EfficiencyTables_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name, "Data", channelData, year, "mBoth", Tag_name), 'wb'))
     
     #######
-    print "Saving the Calibration histograms in EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val)
-    file_root_Data = TFile("EffTable/EffHisto_Calib_HLT_{}_{}_{}-q2{}_lw{}.root".format(channelData, year, "Data", version, low_val),"RECREATE")
+    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name, "Data",channelData, year,  "mBoth", Tag_name)
+    file_root_Data = TFile("EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"Data",channelData, year, "mBoth", Tag_name), "RECREATE")
     map(lambda x:x.Write(), Eff_root_Data)
     #
     file_root_Data.Close()
