@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 #from Presels import GenericPresel, VetoesPresel, TriggePreselE, PIDPresel, TighterKst0Presel
 
 from Adaptive_binning_pro import AdaptiveBinning1D
-from TagAndProbe_kFold import TagAndProbe_L0E, TagAndProbe_L0H, TagAndProbe_L0M, TagAndProbe_L0TIS, TagAndProbe_HLT, TagAndProbe_L0E_onlynumerator, TagAndProbe_L0H_onlynumerator, TagAndProbe_L0M_onlynumerator, TagAndProbe_L0TIS_onlynumerator, TagAndProbe_HLT_onlynumerator
+from TagAndProbe_kFold import TagAndProbe_L0E, TagAndProbe_L0H, TagAndProbe_L0M, TagAndProbe_L0TIS, TagAndProbe_HLT
 from reweighting import reweighting
 from Plotdf import PlotDF
 import pdb
@@ -92,13 +92,12 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
                             
                             if('ee' in channel):
                                 dataframe = CalibSelection_E(dataframe, TM, version, low_val)
-
                             elif ('mm' in channel):
                                 dataframe = CalibSelection_M(dataframe, TM)
                             else:
                                 print "Calibration channel not recognized.\n Exiting ..."
                                 exit()
-
+                            dataframe = PID_RKstar(dataframe, channel)
                             print "Events in this dataframe:  ",dataframe.index.size
                             List.append(dataframe)
                             store.close()
@@ -198,6 +197,15 @@ def HLTTriggerSelection_M(df, year):
 
     return df[cutHLT1 & cutHLT2]
 
+
+def PID_RKstar(df, channel):
+    '''
+    Selection used for the calibration samples of B02Kst0Jpsi2mm & B02Kst0mm
+    '''
+    if('ee' in channel):
+        return df[(df.K_PT > 250.) & (df.Pi_PT > 250.) & (df.L1_PT > 800.)  & (df.L2_PT > 800.) ]
+    elif( 'mm' in channel):
+        return df[(df.K_PT > 250.) & (df.Pi_PT > 250.) & (df.L1_PT > 500.)  & (df.L2_PT > 500.) ]
 
 #############################################################
 def listdirs(folder):
