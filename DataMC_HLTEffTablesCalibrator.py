@@ -31,7 +31,7 @@ from Adaptive_binning_pro import AdaptiveBinning1D
 
 
 
-from TagAndProbe_kFold import TagAndProbe_L0E, TagAndProbe_L0H, TagAndProbe_L0M, TagAndProbe_L0TIS, TagAndProbe_HLT, TagAndProbe_L0E_onlynumerator, TagAndProbe_L0H_onlynumerator, TagAndProbe_L0M_onlynumerator, TagAndProbe_L0TIS_onlynumerator, TagAndProbe_HLT_onlynumerator
+from TagAndProbe_kFold import TagAndProbe_L0E, TagAndProbe_L0H, TagAndProbe_L0M, TagAndProbe_L0TIS, TagAndProbe_HLT
 from reweighting import reweighting
 from Plotdf import PlotDF
 import pdb
@@ -95,8 +95,14 @@ if __name__ == "__main__" :
 
     if(TM):
         Tag_name = 'q2{}_lw{}_TM'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_TM_ECALmask'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_TM_PID'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_TM_KstarPT4'.format(version, low_val)
     else:
         Tag_name = 'q2{}_lw{}'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_ECALmask'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_PID'.format(version, low_val)
+        #Tag_name = 'q2{}_lw{}_KstarPT4'.format(version, low_val)
 
 
     if(user == "M"):
@@ -136,7 +142,7 @@ if __name__ == "__main__" :
     
     
         
-    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.pkl".format(Tag_name,"MC", channelMC, year,"mBoth",  Tag_name)
+    print "Saving the Calibration histograms in EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"MC", channelMC, year,"mBoth",  Tag_name)
     file_root_MC = TFile("EffTable/{}/EffHisto_Calib_HLT-{}_{}_{}_{}-{}.root".format(Tag_name,"MC", channelMC, year, "mBoth",  Tag_name),"RECREATE")
 
     map(lambda x:x.Write(), Eff_root_MC)
