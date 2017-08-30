@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from Adaptive_binning_pro import AdaptiveBinning1D
 import pdb
-from TagAndProbe_core import TAP_L0E_maxET, TAP_L0E2_mixedmaxET, TAP_L0E_indipE, TAP_L0H_KstarPT_notL0E, TAP_L0H_KstarPT_alsoL0L, TAP_L0M_maxpt, TAP_L0M2_mixedmaxPT, TAP_L0H_KstarPT_notL0M, TAP_L0TIS_alsoL0LH, TAP_L0TIS_notL0EH, TAP_L0TIS_notL0MH, TAP_HLT_E, TAP_HLT_M
+from TagAndProbe_core import TAP_L0E_maxET, TAP_L0E2_mixedmaxET, TAP_L0E_indipE, TAP_L0M_indipM, TAP_L0H_KstarPT_notL0E, TAP_L0H_KstarPT_alsoL0L, TAP_L0M_maxpt, TAP_L0M2_mixedmaxPT, TAP_L0H_KstarPT_notL0M, TAP_L0TIS_alsoL0LH, TAP_L0TIS_notL0EH, TAP_L0TIS_notL0MH, TAP_HLT_E, TAP_HLT_M
 
 
 
@@ -158,6 +158,8 @@ def TagAndProbe_L0E(df1, selTag, Model,  Tag, Ada, weight, VERB) :    # Open cal
       arrayTag, arrayTagAndProb = TAP_L0E_maxET(df, selTagDict[selTag], VERB)
    elif (Model == "mixedmaxET"):
       arrayTag, arrayTagAndProb = TAP_L0E2_mixedmaxET(df, selTagDict[selTag],VERB) 
+   elif(Model == "indipE"):
+      arrayTag, arrayTagAndProb = TAP_L0E_indipE(df, selTagDict[selTag], VERB, )
    else:
       print "WARNING!No model Found!"
       exit()
@@ -366,6 +368,355 @@ def TagAndProbe_L0E(df1, selTag, Model,  Tag, Ada, weight, VERB) :    # Open cal
    print "effTable_Out: ",effTable_Out
    print "yBins: ",yBins
    '''
+   
+
+
+   dict_temp1 = {'Binsy-L0Calo_ECAL_max_realET':yBins,
+                 'L0E-Eff-2':effTable_In,
+                 'L0E-Eff-1':effTable_Mid,
+                 'L0E-Eff-0':effTable_Out,
+                 'L0E-Eff-2-Err':ErreffTable_In,
+                 'L0E-Eff-1-Err':ErreffTable_Mid,
+                 'L0E-Eff-0-Err':ErreffTable_Out}
+   
+   dfEff1 = pd.DataFrame(dict_temp1)
+   
+   dict_temp2 = {'Binsx-L0Calo_ECAL_region_max':xBins}
+   dfEff2 = pd.DataFrame(dict_temp2)
+   
+   dfEff = pd.concat([dfEff1,dfEff2],axis=1)
+
+
+   if VERB:
+      print "======Efficiency table - No Weights ======="
+      print(dfEffNoW)
+   print "======Efficiency table -  Weights ======="
+   print(dfEff)
+   print "=========================== END of ===================================="
+   print "================ Tag&Probe algorithm for L0Electron ==================="
+   print "=========================== END of ====================================\n"
+
+   return  effIn, effMid, effOut, dfEff#, passedHist, totalHist
+##########################################################################
+
+
+def TagAndProbe_L0E_single(df1, particle, Tag, Ada, weight, VERB) :    # Open calibration dataset    
+
+   '''
+   Author: Michele Atzeni
+   Email Address: michele.atzeni@cern.ch
+   Date: June 7th, 2017
+   Note: script based on T. Humair's B+ -> J/psi K+ algorithm and R.Coutinho
+
+   Description:
+   This script computes the trigger-on-signal efficiency for electrons and/or positrons as a function of the trasversal energy deposited in the ECAL using a Tag&Probe approach.
+   The electrons are divided depending on the region of the calorimeter hit: inner, medium or outer.
+
+   Concept:
+   Ideally to calculate a trigger efficiency you would just do the following:
+   
+   N_pt = Number of electrons that passed the trigger
+   N_t  = Number of total electrons
+
+   e_trigger = N_pt/N_t
+
+   However the quantity N_t is not accessible experimentally.
+   We can have a datadriven estimate of the trigger efficiency using a  Tag&Probe approach.
+
+   The idea is very simple: we look at the ratio e_trigger for all those events that passed a specific trigger condition, called TAGGING. If the TAGGING trigger  samples similarly the set of all the electrons and the set of triggered ones the two efficiencies must be the same. 
+
+   e_trigger_TAG = N_pt_tag/ N_t_tag =>e_trigger
+
+   Where:  + N_pt_tag = Number of electrons that are TAGged with B_L0Global_TIS and that are triggered as L#_L0ElectronDecision_TOS(PROBE)
+           + N_t_tag = Number of electrons that are TAGged with B_L0Global_TIS 
+   
+
+   Scheme:
+   1)Get the full dataframe
+   2)Choose the charge of the particle: charge =(L1_ID >0) 
+                                                (L2_ID >0)
+
+   3)Define the Probe and Tag selections: TAG    => B_L0Global_TIS==1 & L1_ID >0
+                                                 => B_L0Global_TIS==1 & L2_ID >0
+
+                                          PROBE  => L1_L0ElectronDecision_TOS==1 & L1_ID >0
+                                                 => L2_L0ElectronDecision_TOS==1 & L2_ID >0
+
+   4)Select the dataframe and put together the L1 and L2 
+   5)Get the arrays for the TAGged  and the TAG&Probe sample
+   6)Calculate efficiency
+
+   '''
+
+
+   print "================ Tag&Probe algorithm for L0Electron ==================="
+   print "=================for {}===============".format(Tag)
+
+   if(not weight):
+
+      branchesTag = ["B_PVandJpsiDTF_B_M","L1_L0ElectronDecision_TOS","B_L0Global_TIS","L1_ID","L2_ID","L2_L0ElectronDecision_TOS","L1_L0Calo_ECAL_region","L2_L0Calo_ECAL_region","L1_L0Calo_ECAL_realET","L2_L0Calo_ECAL_realET"]
+      #Reduce the dataframe to speed up
+      df = df1[branchesTag]
+      df.insert(1, 'wL01',1)
+      df.insert(1, 'wL02',1)
+      
+      if VERB:
+         print "========= In the following a uniform weight (1) is used for all the calculations ========="
+         print(df[["L1_L0ElectronDecision_TOS","wL01","wL02"]].head())
+         print "=========================================================================================="
+
+   else:
+      if((weight[0] not in df1.columns) | (weight[1] not in df1.columns)):
+      
+         branchesTag = ["B_PVandJpsiDTF_B_M","L1_L0ElectronDecision_TOS","B_L0Global_TIS","L1_ID","L2_ID","L2_L0ElectronDecision_TOS","L1_L0Calo_ECAL_region","L2_L0Calo_ECAL_region","L1_L0Calo_ECAL_realET","L2_L0Calo_ECAL_realET"]
+         #Reduce the dataframe to speed up
+         df = df1[branchesTag]
+         df.insert(1, 'wL01',1)
+         df.insert(1, 'wL02',1)
+         print "=========================================WARNING======================================================="
+         print "========= Was requested a weighted histogram, however no column found with the name 'weights' ========="
+         print "============== In the following a uniform weight (1) is used for all the calculations ================="
+         print(df[["L1_L0ElectronDecision_TOS","wL01","wL02"]].head())
+         print "======================================================================================================="
+         pdb.set_trace()
+      else:
+
+         branchesTag = ["B_PVandJpsiDTF_B_M","L1_L0ElectronDecision_TOS","B_L0Global_TIS","L1_ID","L2_ID","L2_L0ElectronDecision_TOS","L1_L0Calo_ECAL_region","L2_L0Calo_ECAL_region","L1_L0Calo_ECAL_realET","L2_L0Calo_ECAL_realET"]
+         branchesTag.append(weight)
+         #Reduce the dataframe to speed up
+         df = df1[branchesTag]
+         df = df.rename(columns={weight[0]:'wL01'})
+         df = df.rename(columns={weight[1]:'wL02'})
+         if VERB:
+            print "============ Column of weights successfully loaded =============="
+            print(df[["L1_L0ElectronDecision_TOS","wL01","wL02"]].head())
+            print "================================================================="
+         
+   # Defining the triggered sample (the one we are interested in), the Tag sample and the intersection of the two
+   
+   print "================================================================================"
+   print "====== Number of events in the dataframe used: {}========".format(df.shape[0])
+   print "================================================================================"
+
+   #arrayTag, arrayTagAndProb = TAP_L0E_maxET(df, (df.B_L0Global_TIS == 1), VERB)
+   #arrayTag, arrayTagAndProb = TAP_L0E2_mixedmaxET(df, (df.B_L0Global_TIS == 1),VERB) 
+
+
+
+   selTagDict = {"B_L0Global_TIS" : (df.B_L0Global_TIS == 1),
+                 "All" : ((df.B_L0Global_TIS == 1) | (df.B_L0Global_TIS == 0)),
+                 "test" : ((df.L1_L0ElectronDecision_TOS == 1) | (df.L2_L0ElectronDecision_TOS == 1)),
+}
+
+
+   print "********** TIS sample used: {} ***********".format(selTag)
+
+   arrayTag, arrayTagAndProb = TAP_L0E_indipE(df, selTagDict[selTag], particle)
+
+
+
+   print "================================================================================"
+   print "====== Number of events in the TIS Sample: {}========".format(len(arrayTag))
+   print "================================================================================"
+   print "================================================================================"
+   print "====== Number of events in the TOS Sample: {}========".format(len(arrayTagAndProb))
+   print "================================================================================"
+ 
+  ######################################################################################            
+
+   print '=================================='
+   #print 'The ProbandTag efficiency for the L0Electron trigger in Data is ', float(len(arrayTagAndProb))/float(len(arrayTag))
+
+   #
+   locationBinTab = [-1.5, -0.5, 0.5, 1.5, 2.5]
+   regRange = np.empty(len(locationBinTab),dtype=np.float32)
+   for index, iRegion in enumerate(locationBinTab): 
+      regRange[index] = iRegion
+   #
+   weights_a = np.arange(0,4,0.05)
+   weightsRange = np.empty(len(weights_a),dtype=np.float32)
+   for index, iRegion in enumerate(weights_a): 
+      weightsRange[index] = iRegion
+   
+   #
+
+   #Choice of the binning for the efficiency histograms: either we use an adaptive binning or we pickup the binning from a file
+   if (Ada):
+      
+      dfAda = pd.DataFrame(arrayTagAndProb, columns=['L0Calo_ECAL_region_max','L0Calo_ECAL_max_realET','weights'])
+      binET = AdaptiveBinning1D(dfAda, 'L0Calo_ECAL_max_realET', 8, VERB)
+      print (binET)
+      os.system('mkdir -p Bins')
+      os.system('mkdir -p Bins/{}'.format(Tag.split("-")[-2]))
+      with open('./Bins/{}/BinBoundaries_TAP_singleE_{}.dat'.format(Tag.split("-")[-2],Tag.split("-")[-2]+"-"+Tag.split("-")[-1]), 'wb') as f:
+         for a in binET:
+            f.write(str(a)+'\n')
+         print "Writing the binning scheme to be adopted in ./Bins/{}/BinBoundaries_TAP_singleE_{}.dat".format(Tag.split("-")[-2],Tag.split("-")[-2]+"-"+Tag.split("-")[-1])
+
+   else:
+      with open('./Bins/{}/BinBoundaries_TAP_singleE_{}.dat'.format(Tag.split("-")[-2],Tag.split("-")[-2]+"-"+Tag.split("-")[-1]), 'rb') as f:
+        fills = f.read().splitlines()
+        binET = np.asarray(fills)
+      print "Reading the binning scheme to be adopted in ./Bins/{}/BinBoundaries_TAP_singleE_{}.dat".format(Tag.split("-")[-2],Tag.split("-")[-2]+"-"+Tag.split("-")[-1])
+
+
+   #binET = [0., 2500., 3500, 4000., 4500., 5000., 6000.,  8000., 20000.] #RKstar
+   etRange = np.empty(len(binET),dtype=np.float32)
+   for index, iET in enumerate(binET): 
+      etRange[index] = iET
+   
+
+   w_a = np.arange(-10.,10.)
+   ###################Weighted Histogram
+
+
+   totalHist  = TH2F("totalHist_E"+Tag , "totalHist " , len(regRange)-1, regRange, len(etRange)-1, etRange)
+   passedHist = TH2F("passedHist_E"+Tag, "passedHist ", len(regRange)-1, regRange, len(etRange)-1, etRange)
+   effHist    = TH2F("effHist_E"+Tag   , "efficiency ", len(regRange)-1, regRange, len(etRange)-1, etRange)
+   totalHist.Sumw2(), passedHist.Sumw2(), effHist.Sumw2()
+   totalHist_NoW  = TH2F("totalHist_E_NoW"+Tag , "totalHist " , len(regRange)-1, regRange, len(etRange)-1, etRange)
+   passedHist_NoW = TH2F("passedHist_E_NoW"+Tag, "passedHist ", len(regRange)-1, regRange, len(etRange)-1, etRange)
+   effHist_NoW    = TH2F("effHist_E_NoW"+Tag   , "efficiency ", len(regRange)-1, regRange, len(etRange)-1, etRange)
+   totalHist_NoW.Sumw2(), passedHist_NoW.Sumw2(), effHist_NoW.Sumw2()
+   total_weights  = TH2F("total_weights_E_NoW"+Tag , "totalHist " ,  len(etRange)-1, etRange,len(weightsRange)-1, weightsRange)
+   passed_weights = TH2F("passed_weights_E_NoW"+Tag, "passedHist ",  len(etRange)-1, etRange,len(weightsRange)-1, weightsRange)
+   eff_weights = TH2F("eff_weights_E_NoW"+Tag, "passedHist ",  len(etRange)-1, etRange,len(weightsRange)-1, weightsRange)
+   total_weights.Sumw2(), passed_weights.Sumw2(), eff_weights.Sumw2()
+
+ # Loop over the data tree and fill the histos                                                                                                          
+   for iEntry in xrange(len(arrayTag)):
+      totalHist.Fill(arrayTag[iEntry][0], arrayTag[iEntry][1], arrayTag[iEntry][2])
+      totalHist_NoW.Fill(arrayTag[iEntry][0], arrayTag[iEntry][1])
+      if(arrayTag[iEntry][0]==2):
+         total_weights.Fill(arrayTag[iEntry][1], arrayTag[iEntry][2])
+   for iEntry in xrange(len(arrayTagAndProb)):
+      passedHist.Fill(arrayTagAndProb[iEntry][0], arrayTagAndProb[iEntry][1], arrayTagAndProb[iEntry][2])
+      passedHist_NoW.Fill(arrayTagAndProb[iEntry][0], arrayTagAndProb[iEntry][1])
+      if(arrayTagAndProb[iEntry][0]==2):
+         passed_weights.Fill(arrayTagAndProb[iEntry][1], arrayTagAndProb[iEntry][2])
+
+   effHist.Divide(passedHist, totalHist, 1, 1, "B")
+   eff_weights.Divide(passed_weights, total_weights, 1, 1, "B")
+   effHist_NoW.Divide(passedHist_NoW, totalHist_NoW, 1, 1, "B")
+   effIn  = effHist.ProjectionY("effInE_{}".format(Tag) , 4, 4)
+   effMid  = effHist.ProjectionY("effMidE_{}".format(Tag) , 3, 3)
+   effOut  = effHist.ProjectionY("effOutE_{}".format(Tag) , 2, 2)
+
+
+   effIn_NoW  = effHist_NoW.ProjectionY("effInE_NoW_{}".format(Tag) , 4, 4)
+   effMid_NoW  = effHist_NoW.ProjectionY("effMidE_NoW_{}".format(Tag) , 3, 3)
+   effOut_NoW  = effHist_NoW.ProjectionY("effOutE_NoW_{}".format(Tag) , 2, 2)
+
+   ###################Non Weighted Histogram
+
+   gROOT.SetBatch(kTRUE)
+   gROOT.SetStyle("Plain")      
+   gROOT.ForceStyle()
+   gStyle.SetPalette(1)
+   gStyle.SetOptStat(1111111)
+   '''
+   c = TCanvas('c','')       
+   total_weights.Draw("COLZ text")
+   c.SaveAs("WeightsDistr-L0E-{}Intotal.pdf".format(Tag))
+   c1 = TCanvas('c1','')       
+   passed_weights.Draw("COLZ")
+   c1.SaveAs("WeightsDistr-L0E-{}Inpassed.pdf".format(Tag))
+
+   c2 = TCanvas('c2','')       
+   eff_weights.Draw("COLZ")
+   c2.SaveAs("Plots/Checks/WeightsDistr-L0E-{}InEff.pdf".format(Tag))
+
+   c3 = TCanvas('c3','')       
+   totalHist.Draw("COLZ text")
+   c3.SaveAs("Plots/Checks/totalDistr-L0E-{}.pdf".format(Tag))
+
+   c4 = TCanvas('c4','')       
+   passedHist.Draw("COLZ text ")
+   c4.SaveAs("Plots/Checks/passedDistr-L0E-{}.pdf".format(Tag))
+
+   c41 = TCanvas('c41','')       
+   effHist.Draw("COLZ text ")
+   c41.SaveAs("Plots/Checks/EffDistr-L0E-{}.pdf".format(Tag))
+   '''
+
+   #The projection is done on the bin number
+   '''From the code
+   inside = false;
+
+   if (!inside)
+   return -1;
+   else if (inner)
+   return 2;
+   else if (middle)
+   return 1;
+   else if (outer)
+   return 0;
+   else
+   return -999;
+   '''
+   xBins=[[-0.5, 0.5],[0.5, 1.5],[1.5, 2.5]]
+   yBins =[]
+   
+   effTable_In_NoW = []
+   effTable_Mid_NoW = []
+   effTable_Out_NoW = []
+   ErreffTable_In_NoW = []
+   ErreffTable_Mid_NoW = []
+   ErreffTable_Out_NoW = []
+
+   for i in range(1,len(etRange)):
+      effTable_In_NoW.append(effIn_NoW.GetBinContent(i))
+      effTable_Mid_NoW.append(effMid_NoW.GetBinContent(i))
+      effTable_Out_NoW.append(effOut_NoW.GetBinContent(i))
+      ErreffTable_In_NoW.append(effIn_NoW.GetBinError(i))
+      ErreffTable_Mid_NoW.append(effMid_NoW.GetBinError(i))
+      ErreffTable_Out_NoW.append(effOut_NoW.GetBinError(i))
+      yBins.append([etRange[i-1],etRange[i]])
+
+
+
+
+
+   dict_tempNoW = {'yBins':yBins, 
+                   'L0E-Eff-In':effTable_In_NoW,
+                   'L0E-Eff-Mid':effTable_Mid_NoW,
+                   'L0E-Eff-Out':effTable_Out_NoW,
+                   'L0E-Eff-In-Err':ErreffTable_In_NoW,
+                   'L0E-Eff-Mid-Err':ErreffTable_Mid_NoW,
+                   'L0E-Eff-Out-Err':ErreffTable_Out_NoW}
+   dfEffNoW = pd.DataFrame(dict_tempNoW)
+
+   '''
+   print "effTable_In_NoW: ",effTable_In_NoW
+   print "effTable_Mid_NoW: ",effTable_Mid_NoW
+   print "effTable_Out_NoW: ",effTable_Out_NoW
+   print "yBins: ",yBins
+   '''
+
+
+
+   effTable_In = []
+   effTable_Mid = []
+   effTable_Out = []
+   ErreffTable_In = []
+   ErreffTable_Mid = []
+   ErreffTable_Out = []
+
+   for i in range(1,len(etRange)):
+
+      effTable_In.append(effIn.GetBinContent(i))
+      effTable_Mid.append(effMid.GetBinContent(i))
+      effTable_Out.append(effOut.GetBinContent(i))
+      ErreffTable_In.append(effIn.GetBinError(i))
+      ErreffTable_Mid.append(effMid.GetBinError(i))
+      ErreffTable_Out.append(effOut.GetBinError(i))
+
+   '''
+   print "effTable_In: ",effTable_In
+   print "effTable_Mid: ",effTable_Mid
+   print "effTable_Out: ",effTable_Out
+   print "yBins: ",yBins
+   '''
 
    dict_temp1 = {'Binsy-L0Calo_ECAL_max_realET':yBins,
                 'L0E-Eff-2':effTable_In,
@@ -392,8 +743,9 @@ def TagAndProbe_L0E(df1, selTag, Model,  Tag, Ada, weight, VERB) :    # Open cal
    print "=========================== END of ====================================\n"
 
    return  effIn, effMid, effOut, dfEff#, passedHist, totalHist
-##########################################################################
+ 
 
+#########################################################################
 
 
 
@@ -472,6 +824,9 @@ def TagAndProbe_L0M(df1, selTag, Model, Tag, Ada, weight, VERB) :    # Open cali
       arrayTag, arrayTagAndProb = TAP_L0M_maxpt(df, selTagDict[selTag])
    elif(Model ==  "mixedmaxPT"):
       arrayTag, arrayTagAndProb = TAP_L0M2_mixedmaxPT(df, selTagDict[selTag], VERB)
+
+   elif(Model ==  "indipM"):
+      arrayTag, arrayTagAndProb = TAP_L0M_indipM(df, selTagDict[selTag], VERB)
    else:
       print "WARNING!Wrong Model used!"
       exit()
@@ -540,7 +895,7 @@ def TagAndProbe_L0M(df1, selTag, Model, Tag, Ada, weight, VERB) :    # Open cali
                 
    dfEff1 = pd.DataFrame(dict_temp1)
 
-   dict_temp2 = {"Binsx-Year":[10,13]}
+   dict_temp2 = {"Binsx-Year":[[10,13]]}
    dfEff2 = pd.DataFrame(dict_temp2)
 
    dfEff = pd.concat([dfEff1, dfEff2], axis=1)
