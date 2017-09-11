@@ -43,8 +43,14 @@ from UtilsTriggerCalib import CalibSelection_M,CalibSelection_E,GetJob,  listdir
 def Singlefile_L0TriggerCorrector(ifile, year, Tag_name):
 
     '''
+    Reweights the single ".h5" file according to the Reweighting_L0 module 
+
+    Author: Michele Atzeni
+    Date: June 1st, 2017
 
     '''
+
+
     directory = ifile.rsplit("/",1)[0]+"/"
     filename = ifile.rsplit("/",1)[1]
     filename_spltd = filename.split("-")
@@ -56,48 +62,50 @@ def Singlefile_L0TriggerCorrector(ifile, year, Tag_name):
     
     if(store.keys()):
         print "The DataFrames available are: ", store.keys()
-        
+
+        #TO DO: get rid of this hardcoded dataframe
         df = store["dfTightKst0_noTrig"]
-        
+        sizedf = df.shape[0]
         if( "ee" in filename_spltd[0]):
-            #df =CalibSelection_E(df, TM, version, low_val)
 
-            dfL0E = df[(df.L2_L0ElectronDecision_TOS == 1) | (df.L1_L0ElectronDecision_TOS == 1)]
-            dfL0H = df[(df.Kstar_L0HadronDecision_TOS==1) & (df.L2_L0ElectronDecision_TOS == 0) & (df.L1_L0ElectronDecision_TOS == 0)]
-            dfL0TIS = df[(df.B_L0Global_TIS==1) & (df.Kstar_L0HadronDecision_TOS==0) & (df.L2_L0ElectronDecision_TOS == 0) & (df.L1_L0ElectronDecision_TOS == 0)]
 
-            dfRWL0L = Reweighting_L0(dfL0E, 'L0E', year, Tag_name)
-            dfRWL0H = Reweighting_L0(dfL0H, 'L0H',year, Tag_name)
-            dfRWL0TIS = Reweighting_L0(dfL0TIS, 'L0TIS',year,Tag_name)
-            dfRW = pd.concat([dfRWL0L,dfRWL0H, dfL0TIS],axis = 0)
+
+            dfRWL0E = Reweighting_L0(df, "ee", 'L0E', year, Tag_name)
+            dfRWL0H = Reweighting_L0(dfRWL0E, "ee", 'L0H',year, Tag_name)
+            dfRW = Reweighting_L0(dfRWL0H, "ee",'L0TIS',year,Tag_name)
+
+            #check
+            if((dfRW.shape[0]>sizedf )|(dfRW.shape[0]<sizedf)):
+                raise RuntimeError("Consistency check failed, error found")
+                exit()
+
 
             os.system('mkdir -p {}'.format(directory+"L0RW/"))
-            print "\n\n Saving the reweighted dataframe in {} \n\n".format(directory+"L0RW/"+filename.split(".")[0]+"_L0Hrw.h5")
-            dfRW.to_hdf(directory+"L0RW/"+filename.split(".")[0]+"_L0Hrw.h5", format='table', key="dfL0HLT")
+            print "\n\n Saving the reweighted dataframe in {} \n\n".format(directory+"L0RW/"+filename.split(".")[0]+"_L0rw.h5")
+            dfRW.to_hdf(directory+"L0RW/"+filename.split(".")[0]+"_L0rw.h5", format='table', key="dfL0")
 
             store.close()
                         
-                            #
-
+        #
         elif ("mm" in filename_spltd[0]):
-            #CalibSelection_M(df, TM)
+
             
-            dfL0M = df[(df.L2_L0MuonDecision_TOS == 1) | (df.L1_L0MuonDecision_TOS == 1)]
-            dfL0H = df[(df.Kstar_L0HadronDecision_TOS==1) & (df.L2_L0MuonDecision_TOS == 0) & (df.L1_L0MuonDecision_TOS == 0)]
-            dfL0TIS = df[(df.B_L0Global_TIS==1) & (df.Kstar_L0HadronDecision_TOS==0) & (df.L2_L0MuonDecision_TOS == 0) & (df.L1_L0MuonDecision_TOS == 0)]
-            
-            dfRWL0L = Reweighting_L0(dfL0M, 'L0M',year, Tag_name)
-            dfRWL0H = Reweighting_L0(dfL0H, 'L0H',year,Tag_name)
-            dfRWL0TIS = Reweighting_L0(dfL0TIS, 'L0TIS',year,Tag_name)
-            dfRW = pd.concat([dfRWL0L,dfRWL0H, dfL0TIS],axis = 0)
+            dfRWL0M = Reweighting_L0(df, "mm" ,'L0M',year, Tag_name)
+            dfRWL0H = Reweighting_L0(dfRWL0M, "mm",'L0H',year,Tag_name)
+            dfRW = Reweighting_L0(dfRWL0H, "mm",'L0TIS',year,Tag_name)
+
+            if((dfRW.shape[0]>sizedf )|(dfRW.shape[0]<sizedf)):
+                raise RuntimeError( "Consistency check failed, error found")
+                exit()
+
             os.system('mkdir -p {}'.format(directory+"L0RW/"))            
-            print "\n\n Saving the reweighted dataframe in {} \n\n".format(directory+"L0RW/"+filename.split(".")[0]+"_L0Hrw.h5")
-            dfRW.to_hdf(directory+"L0RW/"+filename.split(".")[0]+"_L0Hrw.h5", format='table', key="dfL0HLT")
+            print "\n\n Saving the reweighted dataframe in {} \n\n".format(directory+"L0RW/"+filename.split(".")[0]+"_L0rw.h5")
+            dfRW.to_hdf(directory+"L0RW/"+filename.split(".")[0]+"_L0rw.h5", format='table', key="dfL0")
 
             store.close()
             
         else:
-            print "Not clear what to do..."
+            print "Not clear what to do, nor ee or mm in filename"
             exit()
                             
     else:
@@ -112,32 +120,6 @@ if __name__ == "__main__" :
     '''
     Author: Michele Atzeni
     Date: June 1st, 2017
-
-    Description:
-    Takes the TightKst0 dataframes for MC (TM) and data (it should be BDT reweighted) and plots the histograms for the trigger efficiencies.
-
-    How to run it:
-    Choose the year of the desired MC/data correction of the trigger and execute!
-    > python L0TriggerDataMC.py [-y 11] [--test]
-
-
-
-  Important:                                                                                                                        
-    
-    Selection for MC (after TightKst0 preselection and Truth Matching):                                                               
-    B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                 
-                                                                                                                                      
-    B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                                                                
-                                                                                                                                      
-                                                                                                                                      
-    #Selection for Data (after TightKst0 preselection):                                                                               
-    #B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                
-    #                                                                                                                                 
-    #B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                            
     '''
         
     parser = argparse.ArgumentParser(description = 'Configuration of the parameters for the SplitAndMerge')
