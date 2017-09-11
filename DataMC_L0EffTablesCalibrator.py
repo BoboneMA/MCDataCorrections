@@ -50,7 +50,9 @@ if __name__ == "__main__" :
     Date: 22 Aug 2017
 
     Description:
-
+    Main body of the L0 Tables calibration.
+    Composed of two main parts:   1. Obtain the full sample for the L0 Table calibration -> Open_files_for_TriggerCalibration
+                                  2. Use the sample for the L0 calibration -> CalibrationTables_L0
     '''
         
     parser = argparse.ArgumentParser(description = 'Configuration of the parameters for the SplitAndMerge')
@@ -112,13 +114,13 @@ if __name__ == "__main__" :
         #Tag_name = 'q2{}_lw{}_KstarPT4'.format(version, low_val)
 
 
-    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, test)
+    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, "dfTightKst0_noTrig", test)
     Eff_tables_Data, Eff_root_Data = CalibrationTables_L0(dfData,"Data", channelData, year, leptons,  Tag_name, VERB)
 
     del dfData
     ###############
     
-    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val,  test)
+    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val, "dfTightKst0_noTrig", test)
     Eff_tables_MC, Eff_root_MC = CalibrationTables_L0(dfMC,"MC", channelMC, year, leptons, Tag_name,VERB)
     
     del dfMC
