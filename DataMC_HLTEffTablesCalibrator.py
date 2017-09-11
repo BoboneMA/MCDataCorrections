@@ -46,11 +46,16 @@ if __name__ == "__main__" :
 
 
     '''
+    Main body of the HLT trigger tables calibration.
+
+    It does three things: 1. Opens and appends the .h5 files of interest, creating a single dataframe -> Open_files_for_TriggerCalibration 
+                          2. This dataframe is then used to produce the calibration tables -> CalibrationTables_HLT
+                          3. Save the .root files and the calibration tables (pkl format)
+    
     Author: Michele Atzeni
     Date: 22 Aug 2017
 
-    Description:
-
+    How to:
     python DataMC_HLTEffTablesCalibrator.py -y RunI -l [ee,mm] -v [All, q2, q2_PVandBDTF] -low [6,7] -u [M,F] --TM --VERB
 
     Achtung:
@@ -69,6 +74,7 @@ if __name__ == "__main__" :
     parser.add_argument("-u", "--user" , dest="user"  , required=False, help="", choices= ['M','F'], default = 'M')
 
     parser.add_argument("--test", action="store_true", help="Do a test plot")
+    parser.add_argument("--L0rw", action="store_true", help="use L0 weights")
     parser.add_argument("--TM", action="store_true", help="TruthMatchedMC")
     parser.add_argument("--VERB", action="store_true", help="VERBOSE")
 
@@ -84,6 +90,7 @@ if __name__ == "__main__" :
     user= args.user
     TM = args.TM
     test = args.test
+    L0rw = args.L0rw
     VERB = args.VERB
 
     #TM = True
@@ -104,9 +111,11 @@ if __name__ == "__main__" :
         #Tag_name = 'q2{}_lw{}_PID'.format(version, low_val)
         #Tag_name = 'q2{}_lw{}_KstarPT4'.format(version, low_val)
 
+    if(L0rw):
+        Tag_name +="_L0rw"
 
     if(user == "M"):
-        directoryMC = '/home/hep/matzeni/gangadir/Analysis/DFs/MC/{}/DFs/WithHOP/ParallelSplitOutput/L0HLT/'.format(channelMC)
+        directoryMC = '/home/hep/matzeni/gangadir/Analysis/DFs/MC/{}/DFs/WithHOP/ParallelSplitOutput/L0HLT/L0RW/'.format(channelMC)
         directoryData = '/home/hep/matzeni/gangadir/Analysis/DFs/Data/{}/DFs/WithHOP/ParallelSplitOutput/L0HLT/'.format(channelData)
 
         from Vocabulary import  jobsDict, type_list, channel_list, yearsRI, yearsRII, mag_list
@@ -119,15 +128,15 @@ if __name__ == "__main__" :
 
     #######
 
-    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val,  test)
-    Eff_tables_Data, Eff_root_Data = CalibrationTables_HLT(dfData,"Data", channelData, year, leptons,Tag_name, VERB)
+    dfData = Open_files_for_TriggerCalibration(directoryData, jobsDict, 'Data', channelData, year, False, version, low_val, 'dfTightKst0_noTrig', test)
+    Eff_tables_Data, Eff_root_Data = CalibrationTables_HLT(dfData,"Data", channelData, year, leptons,Tag_name, False, VERB)
 
     del dfData
 
     #######
 
-    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val,  test)
-    Eff_tables_MC, Eff_root_MC = CalibrationTables_HLT(dfMC,"MC", channelMC, year, leptons, Tag_name, VERB)
+    dfMC = Open_files_for_TriggerCalibration(directoryMC, jobsDict,'MC', channelMC, year, TM, version, low_val, 'dfL0', test)
+    Eff_tables_MC, Eff_root_MC = CalibrationTables_HLT(dfMC,"MC", channelMC, year, leptons, Tag_name, L0rw, VERB)
     
     del dfMC
     #######
