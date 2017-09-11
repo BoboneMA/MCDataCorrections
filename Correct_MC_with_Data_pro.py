@@ -387,6 +387,8 @@ def Reweighting_L0(dftorw, leptons, trig_cat, year, Tag_name):
 def Reweighting_HLT(dftorw, leptons, trig_cat, year, Tag_name):
 
     '''
+    Reweights the FULL dataframe given according to the trigger category given.
+
     Author: Michele Atzeni
     Email: michele.atzeni@cern.ch
     Date: 22 Aug 2017
