@@ -33,7 +33,8 @@ from Plotdf import PlotDF
 import pdb
 from Correct_MC_with_Data import Correct_MC_with_Data_E_maxET, Correct_MC_with_Data_M_maxPT, Correct_MC_with_Data_KPi, Correct_MC_with_Data_TIS, Correct_MC_with_Data_E_mixedmaxET, Correct_MC_with_Data_M_mixedmaxPT, Correct_MC_with_Data_HLT
 
-def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, year, TM, version, low_val, test):
+def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, year, TM, version, low_val, dfname, test):
+
 
     ######################################
     '''
@@ -44,9 +45,10 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
     Description:
     The script is composed of three parts:
     1. Thanks to the module GetJob we obtain the job numbers corresponding to the sample of interest (i.e. with channel, year, inputType and mag required);
-    2. From all the .h5 files with this job numbers we extract the dataframes dfL0HLT/dfTighKst0_noTrig and we apply a the selection written in CalibSelection_*.py;
+    2. From all the .h5 files with this job numbers we extract the dataframes (dfL0HLT or) dfTighKst0_noTrig and we apply  the selection written in CalibSelection_*.py;
     3. Merge all dataframes obtained and return.
         
+    ACHTUNG! NO HLT SELECTION APPLIED HERE!
     '''
 
 
@@ -57,6 +59,7 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
 
 
     if (year == 'RunI'):
+        
         yearlist = ['11','12']
     elif (year == 'RunII'):
         yearlist = ['15','16']
@@ -88,16 +91,18 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
                     
                         try:
                             #dataframe = store['dfL0HLT']
-                            dataframe = store['dfTightKst0_noTrig']
+                            dataframe = store[dfname]
                             
                             if('ee' in channel):
                                 dataframe = CalibSelection_E(dataframe, TM, version, low_val)
+                                #dataframe = ECALmasking(dataframe)
                             elif ('mm' in channel):
                                 dataframe = CalibSelection_M(dataframe, TM)
                             else:
                                 print "Calibration channel not recognized.\n Exiting ..."
                                 exit()
-                            dataframe = PID_RKstar(dataframe, channel)
+                            #dataframe = PID_RKstar(dataframe, channel)
+                            
                             print "Events in this dataframe:  ",dataframe.index.size
                             List.append(dataframe)
                             store.close()
@@ -105,7 +110,7 @@ def Open_files_for_TriggerCalibration(directory, jobDict, inputType, channel, ye
                             if ((filecount > max_files) & (max_files > 0)):
                                 break
                         except:
-                            print "ACHTUNG!No such a dataframe was found!"
+                            print "ACHTUNG! {} was not found!".format(dfname)
                             store.close()
                     else:
                         print '========================================================================================'
@@ -200,12 +205,18 @@ def HLTTriggerSelection_M(df, year):
 
 def PID_RKstar(df, channel):
     '''
-    Selection used for the calibration samples of B02Kst0Jpsi2mm & B02Kst0mm
+    Optional selection used to get closer to the RKstar plots
     '''
     if('ee' in channel):
         return df[(df.K_PT > 250.) & (df.Pi_PT > 250.) & (df.L1_PT > 800.)  & (df.L2_PT > 800.) ]
     elif( 'mm' in channel):
         return df[(df.K_PT > 250.) & (df.Pi_PT > 250.) & (df.L1_PT > 500.)  & (df.L2_PT > 500.) ]
+
+def ECALmasking(df):
+    '''
+    Selection to inforce a masking of the central region of the ECAL, in the data they are not read out
+    '''
+    return df[((df.L1_L0Calo_ECAL_xProjection.abs() > 363.6) | (df.L1_L0Calo_ECAL_yProjection.abs() > 282.6))&((df.L2_L0Calo_ECAL_xProjection.abs() > 363.6) | (df.L2_L0Calo_ECAL_yProjection.abs() > 282.6))]
 
 #############################################################
 def listdirs(folder):
