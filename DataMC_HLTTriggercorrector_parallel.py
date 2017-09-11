@@ -37,11 +37,11 @@ import pdb
 from Correct_MC_with_Data_pro import Correct_MC_with_Data, Reweighting_L0
 
 from UtilsTriggerCalib import CalibSelection_M,CalibSelection_E,GetJob,  listdirs, listfiles
-from Singlefile_L0TriggerCorrector import Singlefile_L0TriggerCorrector
+from Singlefile_HLTTriggerCorrector import Singlefile_HLTTriggerCorrector
 
 
 def multi_helper(args):
-    return Singlefile_L0TriggerCorrector(*args)
+    return Singlefile_HLTTriggerCorrector(*args)
 
 
 
@@ -49,39 +49,21 @@ if __name__ == "__main__" :
 
 
     '''
+    Main body to reweight the samples using the HLT trigger calibration tables. This is done in parallel either using the 'multiprocessing' tool (tested and working) or submitting jobs into the TORQUE system (not tested, probably to debug)
+
     Author: Michele Atzeni
     Date: June 1st, 2017
 
     Description:
-    Takes the TightKst0 dataframes for MC (TM) and data (it should be BDT reweighted) and plots the histograms for the trigger efficiencies.
-
-    How to run it:
-    Choose the year of the desired MC/data correction of the trigger and execute!
-    > python L0TriggerDataMC.py [-y 11] [--test]
 
 
 
-  Important:                                                                                                                        
-    
-    Selection for MC (after TightKst0 preselection and Truth Matching):                                                               
-    B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                 
-                                                                                                                                      
-    B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                   
-                     +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                                                                
-                                                                                                                                      
-                                                                                                                                      
-    #Selection for Data (after TightKst0 preselection):                                                                               
-    #B02Kst0Jpsi2ee-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         q^2        in [6., 11.]*10^5 MeV^2/c^4                                                                
-    #                                                                                                                                 
-    #B02Kst0Jpsi2mm-> + B_PVandJpsiDTF_B_M in [5150., 5900.] MeV/c^2                                                                  
-    #                 +         Jpsi_M     in [2996.9., 3196.9] MeV/c^2                            
+
     '''
         
     parser = argparse.ArgumentParser(description = 'Configuration of the parameters for the SplitAndMerge')
     
-    parser.add_argument("-y", "--year" , dest="y"  , required=False, help="Choose the year for the RI-RII", choices=['11','12','15','16','RunI','RunII'], default = '11')
+    parser.add_argument("-y", "--year" , dest="y"  , required=False, help="Choose the year for the RI-RII", choices=['11','12','15','16','RunI','RunII'], default = 'RunI')
     parser.add_argument("-l", "--leptons" , dest="l"  , required=False, help="Choose the leptons in the final state", choices= ['ee','mm'], default = 'ee')
     parser.add_argument("-v", "--versionq2" , dest="version"  , required=False, help="", choices= ['All','q2','q2_PVandBDTF'], default = 'All')
     parser.add_argument("-low", "--lowq2" , dest="low_val"  , required=False, help="", choices= ['6','7'], default = '6')
@@ -180,8 +162,8 @@ if __name__ == "__main__" :
                             break
 
                     else:
-                        List.append((directory+ifile, jobsDict[ijob]["year"], Tag_name))
-
+                        List.append((directory+ifile, year, Tag_name))
+                        #Singlefile_HLTTriggerCorrector(directory+ifile, year, Tag_name)
 
         if(not batch):
             print(List)
