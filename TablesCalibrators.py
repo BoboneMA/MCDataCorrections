@@ -297,26 +297,24 @@ def CalibrationTables_L0(df, inputType, channel,  year, leptons, Tag_name, VERB)
 def CalibrationTables_HLT(df, inputType, channel,  year, leptons, Tag_name, L0rw, VERB):
 
     '''
+    Given a dataframe and its main characteristics it produces the TISTOS efficiency tables and histograms for HLT, thanks to the modules TagAndProbe* .
+
     Author: Michele Atzeni
     Email: michele.atzeni@cern.ch
     Date: 22 Aug 2017
-
-
-    Description:
-    Given a dataframe and its main characteristics it produces the TISTOS efficiency tables and histograms for HLT, thanks to the modules TagAndProbe* .
-
 
     Achtung:
     It is important to notice that Adaflag is True for Data and False for MC. This is beacuse the Data sample is usually smaller than the simulated one and the bnning should be adapted to the smallest possible sample. 
     The binning obtained for the data is then saved in Binning*.dat and used after for the corresponding simulated sample. 
     For this reason we should always calibrate first the data and then the MC.
     '''
+    #The HLT samples contains different years, this can cause a Memory error if the number of columns used is not reduced
     branches = [i for i in df.columns if (("wL0" not in i)&("_PT"not in i)&("_TOS"not in i)&( "_TIS" not in i))]
     df = df.drop(branches,axis=1)
 
-    print(df.columns)
 
-    #This options allows you to select the TIS sampleon the basis of a hardcoded list you find in TagAndProb_kfold_pro.py
+
+
     Eff_tables = {}
     print "The dataframe used for HLT efficiency calcultaion has shape: ",df.shape
 
@@ -331,7 +329,7 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, Tag_name, L0rw
 
         #HLT efficiency
         df['PT_min'] = df[['K_PT','Pi_PT',"L1_PT", "L2_PT"]].min(axis=1)
-
+        #This options allows you to select the TIS sample on the basis of a hardcoded list you find in TagAndProb_kfold_pro.py
         modelHLT = "M"
 
         dfL0M =df[(df.L1_L0MuonDecision_TOS == 1) | (df.L2_L0MuonDecision_TOS == 1)] 
@@ -340,9 +338,10 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, Tag_name, L0rw
 
         print "The three inclusive categories have the following shapes:\n L0M: {}\n L0H: {}\n L0I: {}\n".format(dfL0M.shape, dfL0Hin.shape, dfL0TISin.shape )
 
-        #If we want L0 reweighted
+
         if(inputType == 'MC'):
 
+            #If we want L0 reweighted
             if(L0rw):
                 eff_HLT_L0M, df_HLT_L0Meff = TagAndProbe_HLT(dfL0M, year, modelHLT, '{}-L0MrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0M"), Adaflag, "wL0M", VERB) 
                 eff_HLT_L0H, df_HLT_L0Heff = TagAndProbe_HLT(dfL0Hin, year, modelHLT, '{}-L0HrwHLT-{}-{}'.format(inputType, Tag_name,year+modelHLT+"_L0H"), Adaflag, 'wL0H_alsoL0M', VERB) 
@@ -403,15 +402,21 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, Tag_name, L0rw
         print "The three inclusive categories have the following shapes:\n L0E: {}\n L0H: {}\n L0I: {}\n".format(dfL0E.shape, dfL0Hin.shape, dfL0TISin.shape )
 
         if(inputType == 'MC'):
+            #If we want L0 reweighted
+            if (L0rw):
+                eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-L0ErwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0E"), Adaflag, "wL0E", VERB)
+                eff_HLT_L0H, df_HLT_L0Heff = TagAndProbe_HLT(dfL0Hin, year, modelHLT, '{}-L0HrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0H"), Adaflag, 'wL0H_alsoL0E', VERB) 
+                eff_HLT_L0TIS, df_HLT_L0TISeff = TagAndProbe_HLT(dfL0TISin, year, modelHLT, '{}-L0IrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0TIS"), Adaflag, "wL0TIS_alsoL0EH", VERB) 
 
-            eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-L0ErwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0E"), Adaflag, "wL0E", VERB)
-            eff_HLT_L0H, df_HLT_L0Heff = TagAndProbe_HLT(dfL0Hin, year, modelHLT, '{}-L0HrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0H"), Adaflag, 'wL0H_alsoL0E', VERB) 
-            eff_HLT_L0TIS, df_HLT_L0TISeff = TagAndProbe_HLT(dfL0TISin, year, modelHLT, '{}-L0IrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0TIS"), Adaflag, "wL0TIS_alsoL0EH", VERB) 
+            else:
+                eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-L0ErwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0E"), Adaflag, None, VERB)
+                eff_HLT_L0H, df_HLT_L0Heff = TagAndProbe_HLT(dfL0Hin, year, modelHLT, '{}-L0HrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0H"), Adaflag, None, VERB) 
+                eff_HLT_L0TIS, df_HLT_L0TISeff = TagAndProbe_HLT(dfL0TISin, year, modelHLT, '{}-L0IrwHLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0TIS"), Adaflag, None, VERB) 
         else:
             eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-HLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0E"), Adaflag, None, VERB)
             eff_HLT_L0H, df_HLT_L0Heff = TagAndProbe_HLT(dfL0Hin, year, modelHLT, '{}-HLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0H"), Adaflag, None, VERB) 
             eff_HLT_L0TIS, df_HLT_L0TISeff = TagAndProbe_HLT(dfL0TISin, year, modelHLT, '{}-HLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0TIS"), Adaflag, None, VERB) 
-        #If we want L0 reweighted
+
         '''
         eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '{}-HLT-{}-{}'.format(inputType, Tag_name, year+modelHLT+"_L0E"), Adaflag, None, VERB)
         #eff_HLT_L0E, df_HLT_L0Eeff = TagAndProbe_HLT(dfL0E, year, modelHLT, '-L0Erw-{}'.format(year+modelHLT+"_L0E"), False, "wL0E_maxPT", VERB) 
@@ -442,6 +447,7 @@ def CalibrationTables_HLT(df, inputType, channel,  year, leptons, Tag_name, L0rw
         return Eff_tables, Eff_root
     else:
         print 'Warning!Wrong particles!'
+        raise RuntimeError('Warning!Wrong particles!')
         return 0,0
 
 
